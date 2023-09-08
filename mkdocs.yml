@@ -67,7 +67,6 @@ nav:
     - Encoded Types: usage/types/encoded.md
     - Enums and Choices: usage/types/enums.md
     - File Types: usage/types/file_types.md
-    - JSON: usage/types/json.md
     - Lists and Tuples: usage/types/list_types.md
     - Number Types: usage/types/number_types.md
     - Secret Types: usage/types/secrets.md
