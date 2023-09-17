@@ -32,7 +32,7 @@ from pydantic._internal._repr import Representation
                     cs.int_schema(ref='int'),
                 ],
             ),
-            cs.list_schema(cs.list_schema(cs.int_schema())),
+            cs.list_schema(cs.list_schema(cs.int_schema(ref='int'), ref='list_of_ints')),
         ),
         # Test case 3: Schema with multiple single-level nested references
         (
@@ -42,7 +42,7 @@ from pydantic._internal._repr import Representation
             cs.definitions_schema(
                 cs.list_schema(cs.definition_reference_schema('int')), definitions=[cs.int_schema(ref='int')]
             ),
-            cs.list_schema(cs.int_schema()),
+            cs.list_schema(cs.int_schema(ref='int')),
         ),
         # Test case 4: A simple recursive schema
         (
@@ -74,7 +74,11 @@ from pydantic._internal._repr import Representation
                     cs.int_schema(ref='int'),
                 ],
             ),
-            cs.list_schema(cs.list_schema(cs.list_schema(cs.int_schema()))),
+            cs.list_schema(
+                cs.list_schema(
+                    cs.list_schema(cs.int_schema(ref='int'), ref='list_of_ints'), ref='list_of_lists_of_ints'
+                )
+            ),
         ),
         # Test case 6: More complex recursive schema
         (
@@ -110,7 +114,7 @@ from pydantic._internal._repr import Representation
                     cs.int_schema(ref='int_or_list'),
                 ],
             ),
-            cs.list_schema(cs.list_schema(cs.int_schema())),
+            cs.list_schema(cs.list_schema(cs.int_schema(ref='int_or_list'), ref='list_of_ints_and_lists')),
         ),
         # Test case 7: Schema with multiple definitions and nested references, some of which are unused
         (
@@ -135,7 +139,7 @@ from pydantic._internal._repr import Representation
                     cs.int_schema(ref='int'),
                 ],
             ),
-            cs.list_schema(cs.list_schema(cs.int_schema())),
+            cs.list_schema(cs.list_schema(cs.int_schema(ref='int'), ref='list_of_ints')),
         ),
         # Test case 8: Reference is used in multiple places
         (
@@ -166,7 +170,7 @@ from pydantic._internal._repr import Representation
             cs.definitions_schema(
                 cs.union_schema(
                     [
-                        cs.list_schema(cs.definition_reference_schema('int')),
+                        cs.list_schema(cs.definition_reference_schema('int'), ref='list_of_ints'),
                         cs.tuple_variable_schema(cs.definition_reference_schema('int')),
                     ]
                 ),
@@ -222,6 +226,7 @@ from pydantic._internal._repr import Representation
                             cs.nullable_schema(cs.definition_reference_schema(schema_ref='ref')),
                         ),
                     },
+                    ref='model',
                 ),
                 definitions=[
                     cs.int_schema(ref='ref'),

@@ -496,12 +496,16 @@ def _simplify_schema_references(schema: core_schema.CoreSchema, inline: bool) ->
     def inline_refs(s: core_schema.CoreSchema, recurse: Recurse) -> core_schema.CoreSchema:
         if s['type'] == 'definition-ref':
             ref = s['schema_ref']
-            # Check if the reference is only used once and not involved in recursion
-            if ref_counts[ref] <= 1 and not involved_in_recursion.get(ref, False):
+            # Check if the reference is only used once, not involved in recursion and does not have
+            # any extra keys (like 'serialization')
+            if (
+                ref_counts[ref] <= 1
+                and not involved_in_recursion.get(ref, False)
+                and s.keys() == {'schema_ref', 'type'}
+            ):
                 # Inline the reference by replacing the reference with the actual schema
                 new = all_defs.pop(ref)
                 ref_counts[ref] -= 1  # because we just replaced it!
-                new.pop('ref')  # type: ignore
                 # put all other keys that were on the def-ref schema into the inlined version
                 # in particular this is needed for `serialization`
                 if 'serialization' in s:
