@@ -430,42 +430,19 @@ def _simplify_schema_references(schema: core_schema.CoreSchema, inline: bool) ->
             for definition in s['definitions']:
                 ref = get_ref(definition)
                 assert ref is not None
-                all_defs[ref] = recurse(definition, collect_refs)
+                all_defs[ref] = definition
+                recurse(definition, collect_refs)
             return recurse(s['schema'], collect_refs)
         else:
             ref = get_ref(s)
             if ref is not None:
                 all_defs[ref] = s
-            return recurse(s, collect_refs)
+                recurse(s, collect_refs)
+                return core_schema.definition_reference_schema(schema_ref=ref)
+            else:
+                return recurse(s, collect_refs)
 
     schema = walk_core_schema(schema, collect_refs)
-
-    def flatten_refs(s: core_schema.CoreSchema, recurse: Recurse) -> core_schema.CoreSchema:
-        if s['type'] == 'definitions':
-            # iterate ourselves, we don't want to flatten the actual defs!
-            definitions: list[CoreSchema] = s.pop('definitions')  # type: ignore
-            schema: CoreSchema = s.pop('schema')  # type: ignore
-            # remaining keys are optional like 'serialization'
-            schema: CoreSchema = {**schema, **s}  # type: ignore
-            s['schema'] = recurse(schema, flatten_refs)
-            for definition in definitions:
-                recurse(definition, flatten_refs)  # don't re-assign here!
-            return schema
-        else:
-            s = recurse(s, flatten_refs)
-            ref = get_ref(s)
-            if ref and ref in all_defs:
-                all_defs[ref] = s
-                return core_schema.definition_reference_schema(schema_ref=ref)
-            return s
-
-    schema = walk_core_schema(schema, flatten_refs)
-
-    for def_schema in all_defs.values():
-        walk_core_schema(def_schema, flatten_refs)
-
-    if not inline:
-        return make_result(schema, all_defs.values())
 
     ref_counts: defaultdict[str, int] = defaultdict(int)
     involved_in_recursion: dict[str, bool] = {}
@@ -501,7 +478,7 @@ def _simplify_schema_references(schema: core_schema.CoreSchema, inline: bool) ->
             if (
                 ref_counts[ref] <= 1
                 and not involved_in_recursion.get(ref, False)
-                and s.keys() == {'schema_ref', 'type'}
+                and {'type', 'schema_ref'}.issuperset(s.keys())
             ):
                 # Inline the reference by replacing the reference with the actual schema
                 new = all_defs.pop(ref)
@@ -521,13 +498,6 @@ def _simplify_schema_references(schema: core_schema.CoreSchema, inline: bool) ->
 
     definitions = [d for d in all_defs.values() if ref_counts[d['ref']] > 0]  # type: ignore
     return make_result(schema, definitions)
-
-
-def flatten_schema_defs(schema: core_schema.CoreSchema) -> core_schema.CoreSchema:
-    """Simplify schema references by:
-    1. Grouping all definitions into a single top-level `definitions` schema, similar to a JSON schema's `#/$defs`.
-    """
-    return _simplify_schema_references(schema, inline=False)
 
 
 def inline_schema_defs(schema: core_schema.CoreSchema) -> core_schema.CoreSchema:
